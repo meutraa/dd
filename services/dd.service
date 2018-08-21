@@ -1,0 +1,19 @@
+[Unit]
+Description=dd server for delta chat messages
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+Environment=DD_EMAIL=
+Environment=DD_PASSWORD=
+PathExists=$HOME/.local/share/dd
+MakeDirectory=true
+WorkingDirectory=$HOME/.local/share/dd
+ExecStart=$HOME/.local/bin/dd
+Restart=always
+RestartSec=15
+
+[Install]
+WantedBy=default.target
+
