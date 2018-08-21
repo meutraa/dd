@@ -25,6 +25,7 @@
 #include "network.h"
 
 #include <pthread.h>
+#include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -77,7 +78,7 @@ void *listen_to_pipe(void *context) {
   char *fifo = "/home/paul/.dd/in";
 
   int err = mkfifo(fifo, 0660);
-  if (err == -1 && errno != 17) { // !File exists
+  if (err == -1 && errno != EEXIST) { // !File exists
     fprintf(stderr, "Unable to create fifo: %s\n", strerror(errno));
     exit(EXIT_FAILURE);
   }
@@ -242,9 +243,8 @@ uintptr_t event_callback(dc_context_t *context, int event, uintptr_t data1,
 int main(int argc, char **argv) {
   dc_context_t *context = dc_context_new(event_callback, NULL, NULL);
 
+  // Parse command line options
   int c;
-  opterr = 0;
-
   while ((c = getopt(argc, argv, ":v")) != -1) {
     switch (c) {
     case 'v':
@@ -253,23 +253,59 @@ int main(int argc, char **argv) {
     }
   }
 
+  // Get environment variables.
   char *email = getenv("DD_EMAIL");
   char *password = getenv("DD_PASSWORD");
+  char *xdg_data_home = getenv("XDG_DATA_HOME");
+  char *home = getenv("HOME");
 
-  if (NULL == email || NULL == password) {
-    fprintf(stderr, "%s\n", "DD_EMAIL or DD_PASSWORD not set");
-    exit(EXIT_FAILURE);
+  if (NULL == email) {
+    fatal("DD_EMAIL not set");
+  }
+  if (NULL == password) {
+    fatal("DD_PASSWORD not set");
+  }
+  if (NULL == home) {
+    fatal("HOME not set");
   }
 
-  char *db_fp;
-  int res = asprintf(&db_fp, "%s.db", email);
+  // Create path strings
+  char *datadir, *db, *accountdir;
+
+  int res = asprintf(
+      &datadir, NULL != xdg_data_home ? "%s/dd" : "%s/.local/share/dd",
+      NULL != xdg_data_home ? xdg_data_home : home);
   if (-1 == res) {
-    fprintf(stderr, "%s\n", "Unable to allocate memory");
-    exit(EXIT_FAILURE);
+    fatal("Unable to allocate memory");
   }
 
-  dc_open(context, db_fp, NULL);
-  free(db_fp);
+  res = asprintf(&accountdir, "%s/%s", datadir, email);
+  if (-1 == res) {
+    fatal("Unable to allocate memory");
+  }
+
+  res = asprintf(&db, "%s/db", accountdir);
+  if (-1 == res) {
+    fatal("Unable to allocate memory");
+  }
+
+  // Create necessary directories
+  res = mkdir(datadir, S_IRWXU | S_IRWXG);
+  if (-1 == res && errno != EEXIST) {
+    fprintf(stderr, "Unable to create data directory: %s\n", strerror(errno));
+    exit(EXIT_FAILURE);
+  }
+  free(datadir);
+
+  res = mkdir(accountdir, S_IRWXU | S_IRWXG);
+  if (-1 == res && errno != EEXIST) {
+    fprintf(stderr, "Unable to create account directory: %s\n", strerror(errno));
+    exit(EXIT_FAILURE);
+  }
+  free(accountdir);
+
+  dc_open(context, db, NULL);
+  free(db);
 
   dc_set_config(context, "addr", email);
   dc_set_config(context, "mail_pw", password);
