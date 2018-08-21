@@ -17,8 +17,11 @@
  *  Copyright 2018 Paul Meredith
  */
 
+#define _GNU_SOURCE
+
 #include <deltachat.h>
 
+#include "config.h"
 #include "network.h"
 
 #include <pthread.h>
@@ -31,6 +34,15 @@
 
 #include <errno.h>
 #include <string.h>
+
+#define COLOR_RED "\x1b[31m"
+#define COLOR_GRAY "\x1b[01;30m"
+#define COLOR_RESET "\x1b[0m"
+
+#define log(a, ...)                                                            \
+  if (logging) {                                                               \
+    fprintf(stderr, COLOR_GRAY a COLOR_RESET, __VA_ARGS__);                    \
+  }
 
 static pthread_t imap_thread, smtp_thread, listen_thread;
 
@@ -49,8 +61,8 @@ void *process_smtp_tasks(void *context) {
   }
 }
 
-void on_fatal_error(dc_context_t *context, char *message) {
-  fprintf(stderr, "%s\n", message);
+void fatal(char *message) {
+  fprintf(stderr, COLOR_RED "%s\n" COLOR_RESET, message);
   exit(EXIT_FAILURE);
 }
 
@@ -65,15 +77,15 @@ void *listen_to_pipe(void *context) {
   char *fifo = "/home/paul/.dd/in";
 
   int err = mkfifo(fifo, 0660);
-  if (err == -1) {
+  if (err == -1 && errno != 17) { // !File exists
     fprintf(stderr, "Unable to create fifo: %s\n", strerror(errno));
-    // exit(EXIT_FAILURE);
+    exit(EXIT_FAILURE);
   }
 
   while (1) {
     FILE *fd = fopen(fifo, "r");
     if (fd == NULL) {
-      on_fatal_error(NULL, "Unable to open fifo for reading input");
+      fatal("Unable to open fifo for reading input");
     }
 
     char *line = NULL;
@@ -95,10 +107,9 @@ void *listen_to_pipe(void *context) {
       }
 
       if (0 == strcmp(argv[1], "message")) {
-        fprintf(stderr, "Received instruction to send a message to %s\n",
-                argv[0]);
         send_message(context, argv[0], argv[2]);
       } else if (0 == strcmp(argv[1], "file")) {
+        // TODO
       }
     }
     fclose(fd);
@@ -107,34 +118,48 @@ void *listen_to_pipe(void *context) {
 
 void on_message_status_changed(dc_context_t *context, char *status, int chat_id,
                                int msg_id) {
-  fprintf(stderr, "Message %s (chat: %d, message: %d)\n", status, chat_id,
-          msg_id);
+  log("Message %s (chat: %d, message: %d)\n", status, chat_id, msg_id);
 }
 
+char *last_room;
+
 void print_message(dc_context_t *context, int chat_id, int msg_id) {
-  dc_chat_t *chat = dc_get_chat(context, chat_id);
-  char *name = dc_chat_get_name(chat);
-
   dc_msg_t *msg = dc_get_msg(context, msg_id);
-  char *text = dc_msg_get_text(msg);
-
   uint32_t sender_id = dc_msg_get_from_id(msg);
+  dc_chat_t *chat = dc_get_chat(context, chat_id);
+  dc_contact_t *sender = dc_get_contact(context, sender_id);
   time_t received_at = dc_msg_get_timestamp(msg);
 
+  char *name = dc_contact_get_display_name(sender);
+  char *text = dc_msg_get_text(msg);
+
+  // Same room logic.
+  char *room = dc_chat_get_name(chat);
+  int same = NULL != last_room && 0 == strcmp(room, last_room) ? 1 : 0;
+  if (NULL != last_room) {
+    // printf("%s and %s\n", last_room, room);
+    free(last_room);
+  }
+  last_room = strdup(room);
+
+  // Get the time the message was received.
   char buff[20];
   strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&received_at));
 
-  if (1 == sender_id) {
-    printf("%s\t%s: %s\n", buff, "toka@lost.host", text);
-  } else {
-    printf("%s\t%s: %s\n", buff, name, text);
+  // TODO: check if text ever does not end with a new line.
+  if (!same) {
+    printf("%s\n", room);
   }
+  printf("\t%s\t%s: %s\n", buff, name, text);
+  fflush(stdout);
 
+  free(room);
   free(name);
   free(text);
 
   dc_chat_unref(chat);
   dc_msg_unref(msg);
+  dc_contact_unref(sender);
 }
 
 // This is just for testing right now.
@@ -167,19 +192,19 @@ uintptr_t event_callback(dc_context_t *context, int event, uintptr_t data1,
                          uintptr_t data2) {
   switch (event) {
   case 100:
-    fprintf(stderr, "Info: %s\n", (const char *)data2);
+    log("I: %s\n", (const char *)data2);
     break;
   case 300:
-    fprintf(stderr, "Warning: %s\n", (const char *)data2);
+    log("W: %s\n", (const char *)data2);
     break;
   case 400:
-    fprintf(stderr, "Error (%d): %s\n", (int)data1, (const char *)data2);
+    log("E: %d: %s\n", (int)data1, (const char *)data2);
     break;
   case 2005:
     print_message(context, (int)data1, (int)data2);
     break;
-  case 2010:
-    on_message_status_changed(context, "Delivered", (int)data1, (int)data2);
+  case 2010: // Received sent message
+    print_message(context, (int)data1, (int)data2);
     break;
   case 2012:
     on_message_status_changed(context, "Failed", (int)data1, (int)data2);
@@ -190,44 +215,61 @@ uintptr_t event_callback(dc_context_t *context, int event, uintptr_t data1,
   case 2091:
     // Asking for a localized string, 0 for default
     break;
-  case 2100:
-    fprintf(stderr, "HTTP Get: %s\n", (const char *)data1);
-
+  case 2100: {
     char *res = http_get((const char *)data1);
     if (NULL != res) {
       return (uintptr_t)res;
     }
 
     break;
+  }
   case 2041:
-    fprintf(stderr, "Configuring: %d\n", (int)data1);
     switch ((int)data1) {
     case 1000:
-      on_configured(context);
+      log("I: %s\n", "Configured succesfully") on_configured(context);
       break;
     case 0:
-      on_fatal_error(context, "Unable to configure");
+      fatal("E: Unable to configure");
       break;
     }
     break;
   default:
-    fprintf(stdout, "Unhandled: %d\n", event);
+    log("I: %s: %d\n", "Unhandled", event);
   }
   return 0;
 }
 
-int main() {
+int main(int argc, char **argv) {
   dc_context_t *context = dc_context_new(event_callback, NULL, NULL);
 
-  char* email = getenv("DD_EMAIL")
-  char* password = getenv("DD_PASSWORD")
+  int c;
+  opterr = 0;
+
+  while ((c = getopt(argc, argv, ":v")) != -1) {
+    switch (c) {
+    case 'v':
+      logging = 1;
+      break;
+    }
+  }
+
+  char *email = getenv("DD_EMAIL");
+  char *password = getenv("DD_PASSWORD");
 
   if (NULL == email || NULL == password) {
     fprintf(stderr, "%s\n", "DD_EMAIL or DD_PASSWORD not set");
-    exit(EXIT_FAILURE)
+    exit(EXIT_FAILURE);
   }
 
-  dc_open(context, "data.db", NULL);
+  char *db_fp;
+  int res = asprintf(&db_fp, "%s.db", email);
+  if (-1 == res) {
+    fprintf(stderr, "%s\n", "Unable to allocate memory");
+    exit(EXIT_FAILURE);
+  }
+
+  dc_open(context, db_fp, NULL);
+  free(db_fp);
 
   dc_set_config(context, "addr", email);
   dc_set_config(context, "mail_pw", password);
