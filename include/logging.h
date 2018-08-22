@@ -20,9 +20,18 @@
 #ifndef DD_LOGGING_H_
 #define DD_LOGGING_H_
 
-static int logging = 0;
+#include <stdio.h>
 
-void info(const char* va, ...);
+#define COLOR_GRAY "\x1b[01;30m"
+#define COLOR_RESET "\x1b[0m"
+
+#define info(fmt, ...) \
+  if (logging) \
+     fprintf(stderr, COLOR_GRAY fmt "\n" COLOR_RESET, __VA_ARGS__);
+
+
+extern int logging;
+
 void fatal(const char *va, ...);
 
 #endif

@@ -22,6 +22,7 @@
 // #include <stdlib.h>
 
 #include <deltachat.h>
+#include <stdlib.h>
 
 #include "logging.h"
 #include "output.h"
@@ -30,10 +31,16 @@
 
 static void on_message_status_changed(dc_context_t *context, char *status, int chat_id,
                                int msg_id) {
-  info("Message %s (chat: %d, message: %d)\n", status, chat_id, msg_id);
+  info("Message %s (chat: %d, message: %d)", status, chat_id, msg_id);
 }
 
 static void on_configured(dc_context_t *context) {
+  char *pkeydir = getenv("DD_PRIVATE_KEY_DIR");
+  if (NULL != pkeydir) {
+    info("Importing private keys from %s", pkeydir);
+    dc_imex(context, DC_IMEX_IMPORT_SELF_KEYS, pkeydir, NULL);
+  }
+
   print_all_messages(context);
 
   start_input_thread(context, dc_get_config(context, "accountdir", "/tmp/dd"));
@@ -43,13 +50,13 @@ uintptr_t on_event(dc_context_t *context, int event, uintptr_t data1,
                    uintptr_t data2) {
   switch (event) {
   case 100:
-    info("I: %s\n", (const char *)data2);
+    info("I: %s", (const char *)data2);
     break;
   case 300:
-    info("W: %s\n", (const char *)data2);
+    info("W: %s", (const char *)data2);
     break;
   case 400:
-    info("E: %d: %s\n", (int)data1, (const char *)data2);
+    info("E: %d: %s", (int)data1, (const char *)data2);
     break;
   case 2005:
     print_message(context, (int)data1, (int)data2);
@@ -62,6 +69,9 @@ uintptr_t on_event(dc_context_t *context, int event, uintptr_t data1,
     break;
   case 2015:
     on_message_status_changed(context, "Read", (int)data1, (int)data2);
+    break;
+  case 2051:
+    info("Import/Export progress: %d", (int)data1);
     break;
   case 2091:
     // Asking for a localized string, 0 for default
@@ -77,7 +87,7 @@ uintptr_t on_event(dc_context_t *context, int event, uintptr_t data1,
   case 2041:
     switch ((int)data1) {
     case 1000:
-      info("I: %s\n", "Configured succesfully");
+      info("I: %s", "Configured succesfully");
       on_configured(context);
       break;
     case 0:
@@ -86,7 +96,7 @@ uintptr_t on_event(dc_context_t *context, int event, uintptr_t data1,
     }
     break;
   default:
-    info("I: %s: %d\n", "Unhandled", event);
+    info("I: %s: %d", "Unhandled", event);
   }
   return 0;
 }

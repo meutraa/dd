@@ -22,21 +22,10 @@
 
 #include <stdlib.h>
 
-#include "logging.h"
-
 #define COLOR_RED "\x1b[31m"
-#define COLOR_GRAY "\x1b[01;30m"
 #define COLOR_RESET "\x1b[0m"
 
-void info(const char *va, ...) {
-  if (!logging) {
-    return;
-  }
-  va_list args;
-  va_start(args, va);
-  vfprintf(stderr, COLOR_GRAY "%s\n" COLOR_RESET, args);
-  va_end(args);
-}
+int logging = 0;
 
 void fatal(const char *va, ...) {
   va_list args;
