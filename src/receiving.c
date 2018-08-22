@@ -34,6 +34,6 @@ void *process_imap_tasks(void *context) {
   }
 }
 
-void start_receiving_thread(dc_context_t* context) {
+void start_receiving_thread(dc_context_t *context) {
   pthread_create(&imap_thread, NULL, process_imap_tasks, context);
 }

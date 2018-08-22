@@ -17,10 +17,9 @@
  *  Copyright 2018 Paul Meredith
  */
 
-#ifndef DD_SENDING_H_
-#define DD_SENDING_H_
+#ifndef DD_STRINGS_H_
+#define DD_STRINGS_H_
 
-void start_sending_thread(dc_context_t *context);
-void send_message(dc_context_t *context, char *address, char *message);
+void trim(char *str);
 
 #endif

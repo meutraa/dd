@@ -20,14 +20,14 @@
 #define _GNU_SOURCE
 
 #include <deltachat.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
 #include <errno.h>
 #include <pthread.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #include "logging.h"
 #include "sending.h"
@@ -35,8 +35,8 @@
 static pthread_t listen_thread;
 
 struct thread_args {
-  dc_context_t* context;
-  const char* accountdir;
+  dc_context_t *context;
+  const char *accountdir;
 };
 
 static void *start_listen_thread(void *arguments) {
@@ -87,7 +87,7 @@ static void *start_listen_thread(void *arguments) {
   free(arguments);
 }
 
-void start_input_thread(dc_context_t* context, const char* accountdir) {
+void start_input_thread(dc_context_t *context, const char *accountdir) {
   struct thread_args *args = malloc(sizeof(struct thread_args));
   args->context = context;
   args->accountdir = accountdir;

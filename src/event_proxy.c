@@ -24,13 +24,13 @@
 #include <deltachat.h>
 #include <stdlib.h>
 
-#include "logging.h"
-#include "output.h"
 #include "input.h"
+#include "logging.h"
 #include "network.h"
+#include "output.h"
 
-static void on_message_status_changed(dc_context_t *context, char *status, int chat_id,
-                               int msg_id) {
+static void on_message_status_changed(dc_context_t *context, char *status,
+                                      int chat_id, int msg_id) {
   info("Message %s (chat: %d, message: %d)", status, chat_id, msg_id);
 }
 

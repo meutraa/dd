@@ -21,11 +21,11 @@
 
 #include <deltachat.h>
 
-#include "logging.h"
-#include "sending.h"
-#include "receiving.h"
-#include "output.h"
 #include "event_proxy.h"
+#include "logging.h"
+#include "output.h"
+#include "receiving.h"
+#include "sending.h"
 
 #include <pthread.h>
 #include <pwd.h>

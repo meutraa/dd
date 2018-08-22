@@ -17,10 +17,11 @@
  *  Copyright 2018 Paul Meredith
  */
 
-#ifndef DD_SENDING_H_
-#define DD_SENDING_H_
+#include <string.h>
 
-void start_sending_thread(dc_context_t *context);
-void send_message(dc_context_t *context, char *address, char *message);
-
-#endif
+void trim(char *str) {
+  for (int len = strlen(str); len >= 1 && '\n' == str[len - 1];
+       len = strlen(str)) {
+    str[len - 1] = '\0';
+  }
+}

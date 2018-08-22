@@ -22,6 +22,6 @@
 
 #include <deltachat.h>
 
-void start_input_thread(dc_context_t *context, const char* accountdir);
+void start_input_thread(dc_context_t *context, const char *accountdir);
 
 #endif

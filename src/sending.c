@@ -23,6 +23,7 @@
 // #include <stdlib.h>
 #include <deltachat.h>
 #include <pthread.h>
+#include <string.h>
 
 static pthread_t smtp_thread;
 
@@ -33,7 +34,7 @@ static void *process_smtp_tasks(void *context) {
   }
 }
 
-void start_sending_thread(dc_context_t* context) {
+void start_sending_thread(dc_context_t *context) {
   pthread_create(&smtp_thread, NULL, process_smtp_tasks, context);
 }
 
@@ -41,5 +42,6 @@ void send_message(dc_context_t *context, char *address, char *message) {
   uint32_t contact_id = dc_create_contact(context, NULL, address);
   uint32_t chat_id = dc_create_chat_by_contact_id(context, contact_id);
 
+  trim(message);
   dc_send_text_msg(context, chat_id, message);
 }

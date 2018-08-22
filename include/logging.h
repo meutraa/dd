@@ -25,10 +25,9 @@
 #define COLOR_GRAY "\x1b[01;30m"
 #define COLOR_RESET "\x1b[0m"
 
-#define info(fmt, ...) \
-  if (logging) \
-     fprintf(stderr, COLOR_GRAY fmt "\n" COLOR_RESET, __VA_ARGS__);
-
+#define info(fmt, ...)                                                         \
+  if (logging)                                                                 \
+    fprintf(stderr, COLOR_GRAY fmt "\n" COLOR_RESET, __VA_ARGS__);
 
 extern int logging;
 

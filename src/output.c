@@ -19,8 +19,8 @@
 
 #include <deltachat.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
 
 static char *last_room;
 
@@ -38,22 +38,26 @@ void print_message(dc_context_t *context, int chat_id, int msg_id) {
   char *room = dc_chat_get_name(chat);
   int same = NULL != last_room && 0 == strcmp(room, last_room) ? 1 : 0;
   if (NULL != last_room) {
-    // printf("%s and %s\n", last_room, room);
     free(last_room);
   }
   last_room = strdup(room);
 
   // Get the time the message was received.
-  char buff[20];
-  strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&received_at));
+  char buff[6];
+  strftime(buff, 6, "%H:%M", localtime(&received_at));
 
   // TODO: check if text ever does not end with a new line.
   if (!same) {
     printf("%s\n", room);
   }
-  printf("\t%s\t%s: %s\n", buff, name, text);
+
+  char *filepath = dc_msg_get_file(msg);
+  char *body = '\0' != filepath[0] ? filepath : text;
+
+  printf("\t%s\t%s: %s\n", buff, name, body);
   fflush(stdout);
 
+  free(filepath);
   free(room);
   free(name);
   free(text);

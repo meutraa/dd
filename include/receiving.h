@@ -20,6 +20,6 @@
 #ifndef DD_RECEIVING_H_
 #define DD_RECEIVING_H_
 
-void start_receiving_thread(dc_context_t* context);
+void start_receiving_thread(dc_context_t *context);
 
 #endif
