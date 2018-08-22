@@ -24,6 +24,7 @@
 #include <deltachat.h>
 #include <pthread.h>
 #include <string.h>
+#include <stdio.h>
 
 static pthread_t smtp_thread;
 
@@ -38,7 +39,42 @@ void start_sending_thread(dc_context_t *context) {
   pthread_create(&smtp_thread, NULL, process_smtp_tasks, context);
 }
 
-void send_message(dc_context_t *context, char *address, char *message) {
+void send_voice(dc_context_t *context, const char *address, const char* file) {
+  uint32_t contact_id = dc_create_contact(context, NULL, address);
+  uint32_t chat_id = dc_create_chat_by_contact_id(context, contact_id);
+
+  dc_send_voice_msg(context, chat_id, file, "Audio/Ogg", 0);
+}
+
+void send_audio(dc_context_t *context, const char *address, const char* file) {
+  uint32_t contact_id = dc_create_contact(context, NULL, address);
+  uint32_t chat_id = dc_create_chat_by_contact_id(context, contact_id);
+
+  dc_send_audio_msg(context, chat_id, file, NULL, 0, NULL, NULL);
+}
+
+void send_image(dc_context_t *context, const char *address, const char* file) {
+  uint32_t contact_id = dc_create_contact(context, NULL, address);
+  uint32_t chat_id = dc_create_chat_by_contact_id(context, contact_id);
+
+  dc_send_image_msg(context, chat_id, file, NULL, 0, 0);
+}
+
+void send_video(dc_context_t *context, const char *address, const char* file) {
+  uint32_t contact_id = dc_create_contact(context, NULL, address);
+  uint32_t chat_id = dc_create_chat_by_contact_id(context, contact_id);
+
+  dc_send_video_msg(context, chat_id, file, NULL, 0, 0, 0);
+}
+
+void send_file(dc_context_t *context, const char *address, const char* file) {
+  uint32_t contact_id = dc_create_contact(context, NULL, address);
+  uint32_t chat_id = dc_create_chat_by_contact_id(context, contact_id);
+
+  dc_send_file_msg(context, chat_id, file, NULL);
+}
+
+void send_text(dc_context_t *context, const char *address, char *message) {
   uint32_t contact_id = dc_create_contact(context, NULL, address);
   uint32_t chat_id = dc_create_chat_by_contact_id(context, contact_id);
 

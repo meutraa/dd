@@ -21,6 +21,12 @@
 #define DD_SENDING_H_
 
 void start_sending_thread(dc_context_t *context);
-void send_message(dc_context_t *context, char *address, char *message);
+
+void send_voice(dc_context_t *context, const char *address, const char* file);
+void send_audio(dc_context_t *context, const char *address, const char* file);
+void send_image(dc_context_t *context, const char *address, const char* file);
+void send_video(dc_context_t *context, const char *address, const char* file);
+void send_file(dc_context_t *context, const char *address, const char* file);
+void send_text(dc_context_t *context, char *address, char *message);
 
 #endif

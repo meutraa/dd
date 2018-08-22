@@ -39,6 +39,34 @@ struct thread_args {
   const char *accountdir;
 };
 
+typedef void (*sendFunc)(struct _dc_context *, const char *, const char *);
+
+struct ext {
+  char *ext;
+  sendFunc function;
+};
+
+struct ext exts[] = {
+    {"jpg", &send_image},
+    {"jpeg", &send_image},
+    {"JPG", &send_image},
+    {"png", &send_image},
+    {"mp3", &send_audio},
+    {"ogg", &send_voice},
+    {"opus", &send_voice},
+    {"wav", &send_voice},
+    {"mp4", &send_video},
+};
+
+static sendFunc get_ext_function(const char *extension) {
+  for (int i = 0; i < sizeof(exts) / sizeof(exts[0]); i++) {
+    if (0 == strcmp(exts[i].ext, extension)) {
+      return exts[i].function;
+    }
+  }
+  return NULL;
+}
+
 static void *start_listen_thread(void *arguments) {
   struct thread_args *args = (struct thread_args *)arguments;
 
@@ -77,9 +105,20 @@ static void *start_listen_thread(void *arguments) {
       }
 
       if (0 == strcmp(argv[1], "message")) {
-        send_message(args->context, argv[0], argv[2]);
-      } else if (0 == strcmp(argv[1], "file")) {
-        // TODO
+        send_text(args->context, argv[0], argv[2]);
+      } else {
+        char *ext = argv[1];
+        char *path = argv[2];
+
+        if (NULL != ext && NULL != path && strlen(path) > 0 &&
+            strlen(ext) > 0) {
+          sendFunc func = get_ext_function(ext);
+          if (NULL == func) {
+            send_file(args->context, argv[0], path);
+          } else {
+            func(args->context, argv[0], path);
+          }
+        }
       }
     }
     fclose(fd);
