@@ -1,12 +1,10 @@
-CC = gcc
-INCS = -I/usr/local/include/deltachat
-LIBS = -ldeltachat -lpthread -lcurl
+srcdir = .
+
+CC = clang
+INCS = -I/usr/local/include/deltachat -I${srcdir}/include
+LIBCC = -ldeltachat -lpthread -lcurl
 CFLAGS += -std=gnu11 -march=skylake -O3 -pipe -fomit-frame-pointer -Wall -Wextra -pedantic ${INCS}
-LDFLAGS += ${LIBS}
+LDFLAGS += ${LIBCC}
 
 all:
 	${CC} ${CFLAGS} -o dd src/*.c ${LDFLAGS} 
-
-install:
-	mkdir -p ${HOME}/.config/systemd/user
-	cp services/dd.service ${HOME}/.config/systemd/user/

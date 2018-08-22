@@ -21,8 +21,11 @@
 
 #include <deltachat.h>
 
-#include "config.h"
 #include "network.h"
+#include "logging.h"
+#include "sending.h"
+#include "receiving.h"
+#include "output.h"
 
 #include <pthread.h>
 #include <pwd.h>
@@ -36,43 +39,7 @@
 #include <errno.h>
 #include <string.h>
 
-#define COLOR_RED "\x1b[31m"
-#define COLOR_GRAY "\x1b[01;30m"
-#define COLOR_RESET "\x1b[0m"
-
-#define log(a, ...)                                                            \
-  if (logging) {                                                               \
-    fprintf(stderr, COLOR_GRAY a COLOR_RESET, __VA_ARGS__);                    \
-  }
-
-static pthread_t imap_thread, smtp_thread, listen_thread;
-
-void *process_imap_tasks(void *context) {
-  while (1) {
-    dc_perform_imap_jobs(context);
-    dc_perform_imap_fetch(context);
-    dc_perform_imap_idle(context);
-  }
-}
-
-void *process_smtp_tasks(void *context) {
-  while (1) {
-    dc_perform_smtp_jobs(context);
-    dc_perform_smtp_idle(context);
-  }
-}
-
-void fatal(char *message) {
-  fprintf(stderr, COLOR_RED "%s\n" COLOR_RESET, message);
-  exit(EXIT_FAILURE);
-}
-
-void send_message(dc_context_t *context, char *address, char *message) {
-  uint32_t contact_id = dc_create_contact(context, NULL, address);
-  uint32_t chat_id = dc_create_chat_by_contact_id(context, contact_id);
-
-  dc_send_text_msg(context, chat_id, message);
-}
+static pthread_t listen_thread;
 
 void *listen_to_pipe(void *context) {
   char *fifo = "/home/paul/.dd/in";
@@ -119,68 +86,7 @@ void *listen_to_pipe(void *context) {
 
 void on_message_status_changed(dc_context_t *context, char *status, int chat_id,
                                int msg_id) {
-  log("Message %s (chat: %d, message: %d)\n", status, chat_id, msg_id);
-}
-
-char *last_room;
-
-void print_message(dc_context_t *context, int chat_id, int msg_id) {
-  dc_msg_t *msg = dc_get_msg(context, msg_id);
-  uint32_t sender_id = dc_msg_get_from_id(msg);
-  dc_chat_t *chat = dc_get_chat(context, chat_id);
-  dc_contact_t *sender = dc_get_contact(context, sender_id);
-  time_t received_at = dc_msg_get_timestamp(msg);
-
-  char *name = dc_contact_get_display_name(sender);
-  char *text = dc_msg_get_text(msg);
-
-  // Same room logic.
-  char *room = dc_chat_get_name(chat);
-  int same = NULL != last_room && 0 == strcmp(room, last_room) ? 1 : 0;
-  if (NULL != last_room) {
-    // printf("%s and %s\n", last_room, room);
-    free(last_room);
-  }
-  last_room = strdup(room);
-
-  // Get the time the message was received.
-  char buff[20];
-  strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&received_at));
-
-  // TODO: check if text ever does not end with a new line.
-  if (!same) {
-    printf("%s\n", room);
-  }
-  printf("\t%s\t%s: %s\n", buff, name, text);
-  fflush(stdout);
-
-  free(room);
-  free(name);
-  free(text);
-
-  dc_chat_unref(chat);
-  dc_msg_unref(msg);
-  dc_contact_unref(sender);
-}
-
-// This is just for testing right now.
-void print_all_messages(dc_context_t *context) {
-  dc_chatlist_t *chatlist = dc_get_chatlist(context, 0, NULL, 0);
-
-  for (int j = 0; j < dc_chatlist_get_cnt(chatlist); j++) {
-
-    uint32_t chat_id = dc_chatlist_get_chat_id(chatlist, j);
-    dc_array_t *msglist = dc_get_chat_msgs(context, chat_id, 0, 0);
-
-    for (int i = 0; i < dc_array_get_cnt(msglist); i++) {
-      uint32_t msg_id = dc_array_get_id(msglist, i);
-      print_message(context, chat_id, msg_id);
-    }
-
-    dc_array_unref(msglist);
-  }
-
-  dc_chatlist_unref(chatlist);
+  info("Message %s (chat: %d, message: %d)\n", status, chat_id, msg_id);
 }
 
 void on_configured(dc_context_t *context) {
@@ -193,13 +99,13 @@ uintptr_t event_callback(dc_context_t *context, int event, uintptr_t data1,
                          uintptr_t data2) {
   switch (event) {
   case 100:
-    log("I: %s\n", (const char *)data2);
+    info("I: %s\n", (const char *)data2);
     break;
   case 300:
-    log("W: %s\n", (const char *)data2);
+    info("W: %s\n", (const char *)data2);
     break;
   case 400:
-    log("E: %d: %s\n", (int)data1, (const char *)data2);
+    info("E: %d: %s\n", (int)data1, (const char *)data2);
     break;
   case 2005:
     print_message(context, (int)data1, (int)data2);
@@ -227,7 +133,8 @@ uintptr_t event_callback(dc_context_t *context, int event, uintptr_t data1,
   case 2041:
     switch ((int)data1) {
     case 1000:
-      log("I: %s\n", "Configured succesfully") on_configured(context);
+      info("I: %s\n", "Configured succesfully");
+      on_configured(context);
       break;
     case 0:
       fatal("E: Unable to configure");
@@ -235,7 +142,7 @@ uintptr_t event_callback(dc_context_t *context, int event, uintptr_t data1,
     }
     break;
   default:
-    log("I: %s: %d\n", "Unhandled", event);
+    info("I: %s: %d\n", "Unhandled", event);
   }
   return 0;
 }
@@ -272,9 +179,9 @@ int main(int argc, char **argv) {
   // Create path strings
   char *datadir, *db, *accountdir;
 
-  int res = asprintf(
-      &datadir, NULL != xdg_data_home ? "%s/dd" : "%s/.local/share/dd",
-      NULL != xdg_data_home ? xdg_data_home : home);
+  int res =
+      asprintf(&datadir, NULL != xdg_data_home ? "%s/dd" : "%s/.local/share/dd",
+               NULL != xdg_data_home ? xdg_data_home : home);
   if (-1 == res) {
     fatal("Unable to allocate memory");
   }
@@ -299,7 +206,8 @@ int main(int argc, char **argv) {
 
   res = mkdir(accountdir, S_IRWXU | S_IRWXG);
   if (-1 == res && errno != EEXIST) {
-    fprintf(stderr, "Unable to create account directory: %s\n", strerror(errno));
+    fprintf(stderr, "Unable to create account directory: %s\n",
+            strerror(errno));
     exit(EXIT_FAILURE);
   }
   free(accountdir);
@@ -311,8 +219,8 @@ int main(int argc, char **argv) {
   dc_set_config(context, "mail_pw", password);
   dc_configure(context);
 
-  pthread_create(&imap_thread, NULL, process_imap_tasks, context);
-  pthread_create(&smtp_thread, NULL, process_smtp_tasks, context);
+  start_receiving_thread(context);
+  start_sending_thread(context);
 
   while (1) {
     sleep(1000);
