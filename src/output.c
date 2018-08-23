@@ -24,7 +24,7 @@
 
 static char *last_room;
 
-void print_message(dc_context_t *context, int chat_id, int msg_id) {
+void print_message(FILE *file, dc_context_t *context, int chat_id, int msg_id) {
   dc_msg_t *msg = dc_get_msg(context, msg_id);
   uint32_t sender_id = dc_msg_get_from_id(msg);
   dc_chat_t *chat = dc_get_chat(context, chat_id);
@@ -48,13 +48,13 @@ void print_message(dc_context_t *context, int chat_id, int msg_id) {
 
   // TODO: check if text ever does not end with a new line.
   if (!same) {
-    printf("%s\n", room);
+    fprintf(file, "%s\n", room);
   }
 
   char *filepath = dc_msg_get_file(msg);
   char *body = '\0' != filepath[0] ? filepath : text;
 
-  printf("\t%s\t%s: %s\n", buff, name, body);
+  fprintf(file, "\t%s\t%s: %s\n", buff, name, body);
   fflush(stdout);
 
   free(filepath);
@@ -78,7 +78,7 @@ void print_all_messages(dc_context_t *context) {
 
     for (int i = 0; i < dc_array_get_cnt(msglist); i++) {
       uint32_t msg_id = dc_array_get_id(msglist, i);
-      print_message(context, chat_id, msg_id);
+      print_message(stderr, context, chat_id, msg_id);
     }
 
     dc_array_unref(msglist);

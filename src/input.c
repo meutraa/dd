@@ -47,15 +47,9 @@ struct ext {
 };
 
 struct ext exts[] = {
-    {"jpg", &send_image},
-    {"jpeg", &send_image},
-    {"JPG", &send_image},
-    {"png", &send_image},
-    {"mp3", &send_audio},
-    {"ogg", &send_voice},
-    {"opus", &send_voice},
-    {"wav", &send_voice},
-    {"mp4", &send_video},
+    {"jpg", &send_image},  {"jpeg", &send_image}, {"JPG", &send_image},
+    {"png", &send_image},  {"mp3", &send_audio},  {"ogg", &send_voice},
+    {"opus", &send_voice}, {"wav", &send_voice},  {"mp4", &send_video},
 };
 
 static sendFunc get_ext_function(const char *extension) {

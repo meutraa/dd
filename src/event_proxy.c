@@ -59,10 +59,10 @@ uintptr_t on_event(dc_context_t *context, int event, uintptr_t data1,
     info("E: %d: %s", (int)data1, (const char *)data2);
     break;
   case 2005:
-    print_message(context, (int)data1, (int)data2);
+    print_message(stdout, context, (int)data1, (int)data2);
     break;
   case 2010: // Received sent message
-    print_message(context, (int)data1, (int)data2);
+    print_message(stdout, context, (int)data1, (int)data2);
     break;
   case 2012:
     on_message_status_changed(context, "Failed", (int)data1, (int)data2);

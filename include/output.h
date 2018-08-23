@@ -22,7 +22,7 @@
 
 #include <deltachat.h>
 
-void print_message(dc_context_t *context, int chat_id, int msg_id);
+void print_message(FILE *file, dc_context_t *context, int chat_id, int msg_id);
 void print_all_messages(dc_context_t *context);
 
 #endif
