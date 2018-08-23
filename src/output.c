@@ -27,6 +27,7 @@ static time_t last_time;
 
 #define BLACK "\x1b[30m"
 #define WHITE "\x1b[37m"
+#define HIDDEN "\x1b[8m"
 #define BOLD "\x1b[1m"
 #define RESET "\x1b[0m"
 
@@ -50,11 +51,8 @@ void print_message(FILE *file, dc_context_t *context, int chat_id, int msg_id) {
 
   // Get the time the message was received.
   char buff[6];
-  if (last_time != 0 && received_at - last_time < 60 * 10) {
-    strcpy(buff, "     ");
-  } else {
-    strftime(buff, 6, "%H:%M", localtime(&received_at));
-  }
+  int recent = last_time != 0 && received_at - last_time < 60 * 10;
+  strftime(buff, 6, "%H:%M", localtime(&received_at));
 
   last_time = received_at;
 
@@ -67,10 +65,19 @@ void print_message(FILE *file, dc_context_t *context, int chat_id, int msg_id) {
   char *body = '\0' != filepath[0] ? filepath : text;
 
   if (sender_id != 1) {
-    fprintf(file, "\t" BOLD BLACK "%s\t" WHITE "%s" RESET ": %s\n", buff, name,
-            body);
+    if (recent) {
+      fprintf(file, "\t" HIDDEN "%s\t" RESET BOLD WHITE "%s" RESET ": %s\n", buff,
+              name, body);
+    } else {
+      fprintf(file, "\t" BOLD BLACK "%s\t" WHITE "%s" RESET ": %s\n", buff,
+              name, body);
+    }
   } else {
-    fprintf(file, "\t" BOLD BLACK "%s\t%s\n" RESET, buff, body);
+    if (recent) {
+      fprintf(file, "\t" HIDDEN "%s\t" RESET BOLD BLACK "%s\n" RESET, buff, body);
+    } else {
+      fprintf(file, "\t" BOLD BLACK "%s\t%s\n" RESET, buff, body);
+    }
   }
   fflush(stdout);
 
