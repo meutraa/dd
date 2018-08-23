@@ -17,14 +17,11 @@
  *  Copyright 2018 Paul Meredith
  */
 
-// #include <stdio.h>
-// #include <stdarg.h>
-
-// #include <stdlib.h>
 #include <deltachat.h>
 #include <pthread.h>
 #include <stdio.h>
-#include <string.h>
+
+#include "strings.h"
 
 static pthread_t smtp_thread;
 

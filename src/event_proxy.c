@@ -17,10 +17,6 @@
  *  Copyright 2018 Paul Meredith
  */
 
-// #include <stdio.h>
-
-// #include <stdlib.h>
-
 #include <deltachat.h>
 #include <stdlib.h>
 

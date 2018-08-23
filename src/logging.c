@@ -19,7 +19,6 @@
 
 #include <stdarg.h>
 #include <stdio.h>
-
 #include <stdlib.h>
 
 #define COLOR_RED "\x1b[31m"

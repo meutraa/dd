@@ -20,6 +20,11 @@
 #define _GNU_SOURCE
 
 #include <deltachat.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <sys/stat.h>
 
 #include "event_proxy.h"
 #include "logging.h"
@@ -27,17 +32,6 @@
 #include "receiving.h"
 #include "sending.h"
 
-#include <pthread.h>
-#include <pwd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-#include <sys/stat.h>
-#include <sys/types.h>
-
-#include <errno.h>
-#include <string.h>
 
 int main(int argc, char **argv) {
   dc_context_t *context = dc_context_new(on_event, NULL, NULL);
