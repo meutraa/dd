@@ -23,6 +23,12 @@
 #include <string.h>
 
 static char *last_room;
+static time_t last_time;
+
+#define BLACK "\x1b[30m"
+#define WHITE "\x1b[37m"
+#define BOLD "\x1b[1m"
+#define RESET "\x1b[0m"
 
 void print_message(FILE *file, dc_context_t *context, int chat_id, int msg_id) {
   dc_msg_t *msg = dc_get_msg(context, msg_id);
@@ -44,17 +50,28 @@ void print_message(FILE *file, dc_context_t *context, int chat_id, int msg_id) {
 
   // Get the time the message was received.
   char buff[6];
-  strftime(buff, 6, "%H:%M", localtime(&received_at));
+  if (last_time != 0 && received_at - last_time < 60 * 10) {
+    strcpy(buff, "     ");
+  } else {
+    strftime(buff, 6, "%H:%M", localtime(&received_at));
+  }
+
+  last_time = received_at;
 
   // TODO: check if text ever does not end with a new line.
   if (!same) {
-    fprintf(file, "%s\n", room);
+    fprintf(file, BOLD WHITE "\n%s\n" RESET, room);
   }
 
   char *filepath = dc_msg_get_file(msg);
   char *body = '\0' != filepath[0] ? filepath : text;
 
-  fprintf(file, "\t%s\t%s: %s\n", buff, name, body);
+  if (sender_id != 1) {
+    fprintf(file, "\t" BOLD BLACK "%s\t" WHITE "%s" RESET ": %s\n", buff, name,
+            body);
+  } else {
+    fprintf(file, "\t" BOLD BLACK "%s\t%s\n" RESET, buff, body);
+  }
   fflush(stdout);
 
   free(filepath);
