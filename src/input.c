@@ -50,7 +50,7 @@ struct ext exts[] = {
 };
 
 static sendFunc get_ext_function(const char *extension) {
-  for (int i = 0; i < sizeof(exts) / sizeof(exts[0]); i++) {
+  for (unsigned long i = 0; i < sizeof(exts) / sizeof(exts[0]); i++) {
     if (0 == strcmp(exts[i].ext, extension)) {
       return exts[i].function;
     }

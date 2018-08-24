@@ -64,21 +64,17 @@ void print_message(FILE *file, dc_context_t *context, int chat_id, int msg_id) {
   char *filepath = dc_msg_get_file(msg);
   char *body = '\0' != filepath[0] ? filepath : text;
 
-  if (sender_id != 1) {
-    if (recent) {
-      fprintf(file, "\t" HIDDEN "%s\t" RESET BOLD WHITE "%s" RESET ": %s\n", buff,
-              name, body);
-    } else {
-      fprintf(file, "\t" BOLD BLACK "%s\t" WHITE "%s" RESET ": %s\n", buff,
-              name, body);
-    }
-  } else {
-    if (recent) {
-      fprintf(file, "\t" HIDDEN "%s\t" RESET BOLD BLACK "%s\n" RESET, buff, body);
-    } else {
-      fprintf(file, "\t" BOLD BLACK "%s\t%s\n" RESET, buff, body);
-    }
+  fprintf(file, "  " BLACK);
+  if (!recent) {
+    fprintf(file, BOLD);
   }
+  fprintf(file, "%s    ", buff); // Time
+  if (sender_id != 1) {
+    fprintf(file, "%s%s%s%s: ", BOLD, WHITE, name, RESET); // Name
+  } else {
+    fprintf(file, "%s", BOLD BLACK);
+  }
+  fprintf(file, "%s%s\n", body, RESET); // Body
   fflush(stdout);
 
   free(filepath);
@@ -95,12 +91,12 @@ void print_message(FILE *file, dc_context_t *context, int chat_id, int msg_id) {
 void print_all_messages(dc_context_t *context) {
   dc_chatlist_t *chatlist = dc_get_chatlist(context, 0, NULL, 0);
 
-  for (int j = 0; j < dc_chatlist_get_cnt(chatlist); j++) {
+  for (size_t j = 0; j < dc_chatlist_get_cnt(chatlist); j++) {
 
     uint32_t chat_id = dc_chatlist_get_chat_id(chatlist, j);
     dc_array_t *msglist = dc_get_chat_msgs(context, chat_id, 0, 0);
 
-    for (int i = 0; i < dc_array_get_cnt(msglist); i++) {
+    for (size_t i = 0; i < dc_array_get_cnt(msglist); i++) {
       uint32_t msg_id = dc_array_get_id(msglist, i);
       print_message(stderr, context, chat_id, msg_id);
     }

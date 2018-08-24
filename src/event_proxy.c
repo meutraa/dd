@@ -25,8 +25,7 @@
 #include "network.h"
 #include "output.h"
 
-static void on_message_status_changed(dc_context_t *context, char *status,
-                                      int chat_id, int msg_id) {
+static void on_message_status_changed(char *status, int chat_id, int msg_id) {
   info("Message %s (chat: %d, message: %d)", status, chat_id, msg_id);
 }
 
@@ -61,10 +60,10 @@ uintptr_t on_event(dc_context_t *context, int event, uintptr_t data1,
     print_message(stdout, context, (int)data1, (int)data2);
     break;
   case 2012:
-    on_message_status_changed(context, "Failed", (int)data1, (int)data2);
+    on_message_status_changed("Failed", (int)data1, (int)data2);
     break;
   case 2015:
-    on_message_status_changed(context, "Read", (int)data1, (int)data2);
+    on_message_status_changed("Read", (int)data1, (int)data2);
     break;
   case 2051:
     info("Import/Export progress: %d", (int)data1);
