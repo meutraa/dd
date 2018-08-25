@@ -115,6 +115,7 @@ static void *start_listen_thread(void *arguments) {
     fclose(fd);
   }
   free(arguments);
+  return NULL;
 }
 
 void start_input_thread(dc_context_t *context, const char *accountdir) {

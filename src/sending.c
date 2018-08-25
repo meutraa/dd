@@ -30,6 +30,7 @@ static void *process_smtp_tasks(void *context) {
     dc_perform_smtp_jobs(context);
     dc_perform_smtp_idle(context);
   }
+  return NULL;
 }
 
 void start_sending_thread(dc_context_t *context) {

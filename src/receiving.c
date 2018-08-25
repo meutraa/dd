@@ -28,6 +28,7 @@ void *process_imap_tasks(void *context) {
     dc_perform_imap_fetch(context);
     dc_perform_imap_idle(context);
   }
+  return NULL;
 }
 
 void start_receiving_thread(dc_context_t *context) {

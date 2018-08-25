@@ -64,13 +64,10 @@ void print_message(FILE *file, dc_context_t *context, int chat_id, int msg_id) {
   char *filepath = dc_msg_get_file(msg);
   char *body = '\0' != filepath[0] ? filepath : text;
 
-  fprintf(file, "  " BLACK);
-  if (!recent) {
-    fprintf(file, BOLD);
-  }
-  fprintf(file, "%s    ", buff); // Time
+  fprintf(file, "  %s", recent ? HIDDEN : BOLD);
+  fprintf(file, "%s%s    ", buff, RESET); // Time
   if (sender_id != 1) {
-    fprintf(file, "%s%s%s%s: ", BOLD, WHITE, name, RESET); // Name
+    fprintf(file, "%s%s%s: ", BOLD, name, RESET); // Name
   } else {
     fprintf(file, "%s", BOLD BLACK);
   }
