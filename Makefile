@@ -10,3 +10,14 @@ LDFLAGS += ${LIBCC}
 
 all:
 	${CC} ${CFLAGS} -o dd src/*.c ${LDFLAGS} 
+
+install: all
+	@cp {${deltachatdir},/usr}/lib/libdeltachat.so
+	@cp {${srcdir},/usr/bin}/dd
+
+uninstall:
+	@rm /usr/lib/libdeltachat.so
+	@rm /usr/bin/dd
+
+clean:
+	@rm ${srcdir}/dd
