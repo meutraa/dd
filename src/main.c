@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
   }
 
   // Create path strings
-  char *datadir, *db, *accountdir;
+  char *datadir, *db, *accountdir, *keydir;
 
   int res =
       asprintf(&datadir, NULL != xdg_data_home ? "%s/dd" : "%s/.local/share/dd",
@@ -77,6 +77,11 @@ int main(int argc, char **argv) {
   }
 
   res = asprintf(&db, "%s/db", accountdir);
+  if (-1 == res) {
+    fatal("Unable to allocate memory");
+  }
+
+  res = asprintf(&keydir, "%s/%s", accountdir, "keys");
   if (-1 == res) {
     fatal("Unable to allocate memory");
   }
@@ -105,6 +110,9 @@ int main(int argc, char **argv) {
   free(accountdir);
 
   dc_configure(context);
+
+  info("Importing private keys from %s", keydir);
+  dc_imex(context, DC_IMEX_IMPORT_SELF_KEYS, keydir, NULL);
 
   start_receiving_thread(context);
   start_sending_thread(context);

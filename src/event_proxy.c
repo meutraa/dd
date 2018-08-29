@@ -30,12 +30,6 @@ static void on_message_status_changed(char *status, int chat_id, int msg_id) {
 }
 
 static void on_configured(dc_context_t *context) {
-  char *pkeydir = getenv("DD_PRIVATE_KEY_DIR");
-  if (NULL != pkeydir) {
-    info("Importing private keys from %s", pkeydir);
-    dc_imex(context, DC_IMEX_IMPORT_SELF_KEYS, pkeydir, NULL);
-  }
-
   print_all_messages(context);
 
   start_input_thread(context, dc_get_config(context, "accountdir", "/tmp/dd"));
