@@ -17,11 +17,11 @@ srcdir = .
 
 CC = clang
 INCS = -I/usr/local/include/deltachat -I${srcdir}/include -L/usr/local/lib
-LIBS = libssl libcurl sqlite3 libcrypto libgsasl
-LDFLAGS += `pkg-config --static --libs ${LIBS}` /usr/local/lib/libdeltachat.a
-CLIBFLAGS = `pkg-config --static --cflags ${LIBS}`
+LIBS = libssl libcurl sqlite3 libcrypto
+LDFLAGS += -ldeltachat -lpthread `pkg-config --libs ${LIBS}`
+CLIBFLAGS = `pkg-config --cflags ${LIBS}`
 WARNINGS = -Wall -Wextra
-CFLAGS += -std=gnu11 -O3 -pipe -fomit-frame-pointer ${CLIBFLAGS} ${WARNINGS} -pedantic -static -static-libgcc ${INCS}
+CFLAGS += -std=gnu11 -O3 -pipe -fomit-frame-pointer ${CLIBFLAGS} ${WARNINGS} -pedantic ${INCS}
 
 all:
 	${CC} ${CFLAGS} -o dd src/*.c ${LDFLAGS} 
