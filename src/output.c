@@ -93,7 +93,13 @@ void print_all_messages(dc_context_t *context) {
     uint32_t chat_id = dc_chatlist_get_chat_id(chatlist, j);
     dc_array_t *msglist = dc_get_chat_msgs(context, chat_id, 0, 0);
 
-    for (size_t i = 0; i < dc_array_get_cnt(msglist); i++) {
+    size_t msgcount = dc_array_get_cnt(msglist);
+    int msg_start = msgcount - 20;
+    if (msg_start < 0) {
+      msg_start = 0;
+    }
+
+    for (size_t i = msg_start; i < msgcount; i++) {
       uint32_t msg_id = dc_array_get_id(msglist, i);
       print_message(stderr, context, chat_id, msg_id);
     }
