@@ -37,6 +37,8 @@ static void on_configured(dc_context_t *context) {
 
 uintptr_t on_event(dc_context_t *context, int event, uintptr_t data1,
                    uintptr_t data2) {
+uint32_t *msg_ids;
+
   switch (event) {
   case 100:
     info("I: %s", (const char *)data2);
@@ -48,6 +50,12 @@ uintptr_t on_event(dc_context_t *context, int event, uintptr_t data1,
     info("E: %d: %s", (int)data1, (const char *)data2);
     break;
   case 2005:
+    // Mark as seen
+    msg_ids = malloc(sizeof(uint32_t *));
+    msg_ids[0] = (int) data2;
+    dc_markseen_msgs(context, msg_ids, 1);
+    free(msg_ids);
+
     print_message(stdout, context, (int)data1, (int)data2);
     break;
   case 2010: // Received sent message
