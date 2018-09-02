@@ -72,7 +72,7 @@ void print_message(FILE *file, dc_context_t *context, int chat_id, int msg_id) {
     fprintf(file, "%s", BOLD BLACK);
   }
   fprintf(file, "%s%s\n", body, RESET); // Body
-  fflush(stdout);
+  fflush(file);
 
   free(filepath);
   free(room);
