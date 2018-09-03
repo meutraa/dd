@@ -20,16 +20,14 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #define COLOR_RED "\x1b[31m"
 #define COLOR_RESET "\x1b[0m"
 
-int logging = 0;
+bool logging = false;
 
-void fatal(const char *va, ...) {
-  va_list args;
-  va_start(args, va);
-  vfprintf(stderr, COLOR_RED "%s\n" COLOR_RESET, args);
-  va_end(args);
+void fatal(const char* message) {
+  fprintf(stderr, COLOR_RED "%s\n" COLOR_RESET, message);
   exit(EXIT_FAILURE);
 }

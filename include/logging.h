@@ -21,6 +21,7 @@
 #define DD_LOGGING_H_
 
 #include <stdio.h>
+#include <stdbool.h>
 
 #define COLOR_GRAY "\x1b[01;30m"
 #define COLOR_RESET "\x1b[0m"
@@ -29,8 +30,8 @@
   if (logging)                                                                 \
     fprintf(stderr, COLOR_GRAY fmt "\n" COLOR_RESET, __VA_ARGS__);
 
-extern int logging;
+extern bool logging;
 
-void fatal(const char *va, ...);
+void fatal(const char *message);
 
 #endif

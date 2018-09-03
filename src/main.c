@@ -32,49 +32,106 @@
 #include "receiving.h"
 #include "sending.h"
 
-int main(int argc, char **argv) {
-  dc_context_t *context = dc_context_new(on_event, NULL, NULL);
+#include <yaml.h>
 
-  // Parse command line options
-  int c;
-  while ((c = getopt(argc, argv, ":v")) != -1) {
-    switch (c) {
-    case 'v':
-      logging = 1;
-      break;
+#include "flag.h"
+#include "sds.h"
+
+#define VERSION "v0.3.0"
+
+int main(int argc, const char **argv) {
+  const char *email, *password, *xdg_data_home, *home;
+  sds datadir = sdsempty();
+
+  // Parse config file first
+  FILE *input = fopen("/home/paul/.config/dd/dd.yaml", "rb");
+  if (NULL != input) {
+    int done = 0;
+    yaml_parser_t parser;
+    yaml_token_t token;
+    char **setting;
+    if (!yaml_parser_initialize(&parser)) {
+      fatal("Unable to initialize yaml parser");
     }
+
+    yaml_parser_set_input_file(&parser, input);
+    while (!done) {
+      if (!yaml_parser_scan(&parser, &token)) {
+        break;
+      }
+
+      switch (token.type) {
+      case YAML_STREAM_END_TOKEN:
+        done = 1;
+        break;
+      case YAML_SCALAR_TOKEN:
+        if (0 == strcmp(token.data.scalar.value, "email")) {
+          setting = &email;
+        } else if (0 == strcmp(token.data.scalar.value, "password")) {
+          setting = &password;
+        } else if (NULL != setting) {
+          (*setting) = strdup(token.data.scalar.value);
+          setting = NULL;
+        } else {
+          setting = NULL;
+        }
+        break;
+      }
+      if (token.type != YAML_STREAM_END_TOKEN) {
+        yaml_token_delete(&token);
+      }
+    }
+
+    yaml_parser_delete(&parser);
+    fclose(input);
   }
 
   // Get environment variables.
-  char *email = getenv("DD_EMAIL");
-  char *password = getenv("DD_PASSWORD");
-  char *xdg_data_home = getenv("XDG_DATA_HOME");
-  char *home = getenv("HOME");
+  const char *env_email = getenv("DD_EMAIL");
+  if (NULL != env_email) {
+    email = env_email;
+  }
+  const char *env_password = getenv("DD_PASSWORD");
+  if (NULL != env_password) {
+    password = env_password;
+  }
+  home = getenv("HOME");
+  xdg_data_home = getenv("XDG_DATA_HOME");
 
-  if (NULL == email) {
-    fatal("DD_EMAIL not set");
+  if (NULL == xdg_data_home) {
+    datadir = sdscat(datadir, home);
+    datadir = sdscat(datadir, "/.local/share/dd");
+  } else {
+    datadir = sdscat(datadir, xdg_data_home);
+    datadir = sdscat(datadir, "/dd");
   }
-  if (NULL == password) {
-    fatal("DD_PASSWORD not set");
+
+  // Command line arguments highest priority.
+  flag_string(&email, "email", "Email address [DD_EMAIL]");
+  flag_string(&password, "password", "Email password [DD_PASSWORD]");
+  flag_string(&datadir, "datadir", "Data directory");
+  flag_bool(&logging, "verbose", "Print debugging information");
+  flag_parse(argc, argv, VERSION);
+
+  if (NULL == email || NULL == password) {
+    flagset_write_usage(flagset_get(), stdout, argv[0]);
+    exit(EXIT_FAILURE);
   }
-  if (NULL == home) {
-    fatal("HOME not set");
+
+  // Check if data directory is writable
+  int res = access(datadir, W_OK);
+  if (0 != res) {
+    fatal("Unable to write to data directory");
   }
 
   // Create path strings
-  char *datadir, *db, *accountdir, *keydir;
-
-  int res =
-      asprintf(&datadir, NULL != xdg_data_home ? "%s/dd" : "%s/.local/share/dd",
-               NULL != xdg_data_home ? xdg_data_home : home);
-  if (-1 == res) {
-    fatal("Unable to allocate memory");
-  }
+  char *db, *accountdir, *keydir;
 
   res = asprintf(&accountdir, "%s/%s", datadir, email);
   if (-1 == res) {
     fatal("Unable to allocate memory");
   }
+  sdsfree(datadir);
 
   res = asprintf(&db, "%s/db", accountdir);
   if (-1 == res) {
@@ -101,6 +158,7 @@ int main(int argc, char **argv) {
     exit(EXIT_FAILURE);
   }
 
+  dc_context_t *context = dc_context_new(on_event, NULL, NULL);
   dc_open(context, db, NULL);
   free(db);
 
