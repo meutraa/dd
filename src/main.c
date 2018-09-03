@@ -131,7 +131,6 @@ int main(int argc, const char **argv) {
   if (-1 == res) {
     fatal("Unable to allocate memory");
   }
-  sdsfree(datadir);
 
   res = asprintf(&db, "%s/db", accountdir);
   if (-1 == res) {
@@ -149,7 +148,7 @@ int main(int argc, const char **argv) {
     fprintf(stderr, "Unable to create data directory: %s\n", strerror(errno));
     exit(EXIT_FAILURE);
   }
-  free(datadir);
+  sdsfree(datadir);
 
   res = mkdir(accountdir, S_IRWXU | S_IRWXG);
   if (-1 == res && errno != EEXIST) {
