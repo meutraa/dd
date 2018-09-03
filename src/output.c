@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "config.h"
+
 static char *last_room;
 static time_t last_time;
 
@@ -94,7 +96,7 @@ void print_all_messages(dc_context_t *context) {
     dc_array_t *msglist = dc_get_chat_msgs(context, chat_id, 0, 0);
 
     size_t msgcount = dc_array_get_cnt(msglist);
-    int msg_start = msgcount - 20;
+    int msg_start = msgcount - history_count;
     if (msg_start < 0) {
       msg_start = 0;
     }

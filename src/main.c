@@ -25,9 +25,11 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <assert.h>
 
 #include "event_proxy.h"
 #include "logging.h"
+#include "config.h"
 #include "output.h"
 #include "receiving.h"
 #include "sending.h"
@@ -35,16 +37,30 @@
 #include <yaml.h>
 
 #include "flag.h"
-#include "sds.h"
 
 #define VERSION "v0.3.0"
 
 int main(int argc, const char **argv) {
-  const char *email, *password, *xdg_data_home, *home;
-  sds datadir = sdsempty();
+  char *email, *password, *xdg_data_home, *home, *datadir, *config_path;
+  int res;
+
+  // Create the data and config directory strings
+  home = getenv("HOME");
+  xdg_data_home = getenv("XDG_DATA_HOME");
+  if (NULL == xdg_data_home) {
+    res = asprintf(&datadir, "%s/%s", home, ".local/share/dd");
+  } else {
+    res = asprintf(&datadir, "%s/%s", xdg_data_home, "dd");
+  }
+  assert(-1 != res);
+
+  res = asprintf(&config_path, "%s/.config/dd/dd.yaml", home);
+  assert(-1 != res);
 
   // Parse config file first
-  FILE *input = fopen("/home/paul/.config/dd/dd.yaml", "rb");
+  FILE *input = fopen(config_path, "rb");
+  free(config_path);
+
   if (NULL != input) {
     int done = 0;
     yaml_parser_t parser;
@@ -95,21 +111,12 @@ int main(int argc, const char **argv) {
   if (NULL != env_password) {
     password = env_password;
   }
-  home = getenv("HOME");
-  xdg_data_home = getenv("XDG_DATA_HOME");
-
-  if (NULL == xdg_data_home) {
-    datadir = sdscat(datadir, home);
-    datadir = sdscat(datadir, "/.local/share/dd");
-  } else {
-    datadir = sdscat(datadir, xdg_data_home);
-    datadir = sdscat(datadir, "/dd");
-  }
 
   // Command line arguments highest priority.
   flag_string(&email, "email", "Email address [DD_EMAIL]");
   flag_string(&password, "password", "Email password [DD_PASSWORD]");
   flag_string(&datadir, "datadir", "Data directory");
+  flag_int(&history_count, "count", "Lines of history to print for each contact");
   flag_bool(&logging, "verbose", "Print debugging information");
   flag_parse(argc, argv, VERSION);
 
@@ -119,7 +126,7 @@ int main(int argc, const char **argv) {
   }
 
   // Check if data directory is writable
-  int res = access(datadir, W_OK);
+  res = access(datadir, W_OK);
   if (0 != res) {
     fatal("Unable to write to data directory");
   }
@@ -128,19 +135,13 @@ int main(int argc, const char **argv) {
   char *db, *accountdir, *keydir;
 
   res = asprintf(&accountdir, "%s/%s", datadir, email);
-  if (-1 == res) {
-    fatal("Unable to allocate memory");
-  }
+  assert(-1 != res);
 
   res = asprintf(&db, "%s/db", accountdir);
-  if (-1 == res) {
-    fatal("Unable to allocate memory");
-  }
+  assert(-1 != res);
 
   res = asprintf(&keydir, "%s/%s", accountdir, "keys");
-  if (-1 == res) {
-    fatal("Unable to allocate memory");
-  }
+  assert(-1 != res);
 
   // Create necessary directories
   res = mkdir(datadir, S_IRWXU | S_IRWXG);
@@ -148,7 +149,7 @@ int main(int argc, const char **argv) {
     fprintf(stderr, "Unable to create data directory: %s\n", strerror(errno));
     exit(EXIT_FAILURE);
   }
-  sdsfree(datadir);
+  free(datadir);
 
   res = mkdir(accountdir, S_IRWXU | S_IRWXG);
   if (-1 == res && errno != EEXIST) {

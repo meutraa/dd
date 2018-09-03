@@ -16,7 +16,7 @@ srcdir = .
 
 
 CC = clang
-INCS = -I/usr/local/include/deltachat -I${srcdir}/deps/flag -I${srcdir}/deps/sds -I${srcdir}/include -L/usr/local/lib
+INCS = -I/usr/local/include/deltachat -I${srcdir}/deps/flag -I${srcdir}/include -L/usr/local/lib
 LIBS = libssl libcurl sqlite3 libcrypto
 LDFLAGS += -lyaml -ldeltachat -lpthread `pkg-config --libs ${LIBS}`
 CLIBFLAGS = `pkg-config --cflags ${LIBS}`
