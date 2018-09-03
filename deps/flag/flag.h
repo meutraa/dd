@@ -75,8 +75,6 @@ typedef struct {
 
 // Flagset.
 
-flagset_t* flagset_get();
-
 flagset_t *
 flagset_new();
 

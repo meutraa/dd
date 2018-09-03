@@ -12,10 +12,6 @@
 
 static flagset_t *set = NULL;
 
-flagset_t* flagset_get() {
-  return set;
-}
-
 /*
  * Parsing error.
  */
@@ -279,3 +275,4 @@ FLAG_TYPE(string, const char *, STRING);
 #undef UNDEFINED_ERROR
 #undef PARSE_ERROR
 #undef FLAG_TYPE
+

@@ -121,7 +121,6 @@ int main(int argc, const char **argv) {
   flag_parse(argc, argv, VERSION);
 
   if (NULL == email || NULL == password) {
-    flagset_write_usage(flagset_get(), stdout, argv[0]);
     exit(EXIT_FAILURE);
   }
 
