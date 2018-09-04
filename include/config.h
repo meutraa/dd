@@ -23,5 +23,6 @@
 #include <stdbool.h>
 
 extern int history_count;
+extern bool alarm_disabled;
 
 #endif

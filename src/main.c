@@ -85,6 +85,8 @@ int main(int argc, const char **argv) {
           setting = &email;
         } else if (0 == strcmp(token.data.scalar.value, "password")) {
           setting = &password;
+        //} else if (0 == strcmp(token.data.scalar.value, "alarm") {
+          //setting = &alarm;
         } else if (NULL != setting) {
           (*setting) = strdup(token.data.scalar.value);
           setting = NULL;
@@ -117,6 +119,7 @@ int main(int argc, const char **argv) {
   flag_string(&password, "password", "Email password [DD_PASSWORD]");
   flag_string(&datadir, "datadir", "Data directory");
   flag_int(&history_count, "count", "Lines of history to print for each contact");
+  flag_bool(&alarm_disabled, "silent", "Silence the alarm bell");
   flag_bool(&logging, "verbose", "Print debugging information");
   flag_parse(argc, argv, VERSION);
 

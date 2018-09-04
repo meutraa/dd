@@ -20,3 +20,4 @@
 #include <stdbool.h>
 
 int history_count = 20;
+bool alarm_disabled = false;
