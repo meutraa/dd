@@ -69,7 +69,7 @@ void print_message(FILE *file, dc_context_t *context, int chat_id, int msg_id) {
   fprintf(file, "  %s", recent ? HIDDEN : BOLD);
   fprintf(file, "%s%s    ", buff, RESET); // Time
   if (sender_id != 1) {
-    fprintf(file, "%s%s%s: ", BOLD, name, RESET); // Name
+    fprintf(file, "\a%s%s%s: ", BOLD, name, RESET); // Name
   } else {
     fprintf(file, "%s", BOLD BLACK);
   }

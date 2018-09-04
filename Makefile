@@ -10,10 +10,10 @@ all:
 	${CC} ${CFLAGS} -o dd src/*.c deps/*/*.c ${LDFLAGS}
 
 install: all
-	@cp {${srcdir},/usr/bin}/dd
+	@cp {.,/usr/bin}/dd
 
 uninstall:
 	@rm /usr/bin/dd
 
 clean:
-	@rm ${srcdir}/dd
+	@rm ./dd
