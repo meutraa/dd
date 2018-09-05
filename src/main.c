@@ -19,111 +19,148 @@
 
 #define _GNU_SOURCE
 
+#include <assert.h>
 #include <deltachat.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <assert.h>
 
+#include "config.h"
 #include "event_proxy.h"
 #include "logging.h"
-#include "config.h"
 #include "output.h"
 #include "receiving.h"
 #include "sending.h"
 
-#include <yaml.h>
-
 #include "flag.h"
+#include "ini.h"
 
 #define VERSION "v0.3.0"
 
+typedef struct {
+  char *value;
+  char *opt_name;
+  char *env_name;
+  char *arg_name;
+  char *ini_section;
+  char *ini_name;
+  char *description;
+} Option;
+
+char *getValue(Option options[], int len, char *opt_name) {
+  for (int i = 0; i < len; i++) {
+    if(0 == strcmp(opt_name, options[i].opt_name)) {
+      if (0 == strcmp("", options[i].value)) {
+        return NULL;
+      }
+      return options[i].value;
+    }
+  }
+  return NULL;
+}
+
+// All off these options will be freed when ini_free is called.
+void from_ini(Option *option, ini_t *config) {
+  if (NULL == config) {
+    return;
+  }
+  const char *opt = ini_get(config, option->ini_section, option->ini_name);
+  if (NULL != opt && 0 != strcmp("", opt)) {
+    option->value = opt;
+  }
+}
+
+void from_env(Option *option) {
+  const char *opt = getenv(option->env_name);
+  if (NULL != opt && 0 != strcmp("", opt)) {
+    option->value = opt;
+  }
+}
+
+void from_arg(Option *option) {
+  flag_string(&option->value, option->arg_name, option->description);
+}
+
+void set_option(dc_context_t *context, Option *option) {
+  if (NULL == option->opt_name || 0 == strcmp("", option->opt_name)) {
+    return;
+  }
+  if (NULL != option->value && 0 != strcmp("", option->value)) {
+    info("Setting %s to %s", option->opt_name, option->value);
+    dc_set_config(context, option->opt_name, option->value);
+  }
+}
+
 int main(int argc, const char **argv) {
-  char *email, *password, *xdg_data_home, *home, *datadir, *config_path;
+  char *datadir = "";
+  char *config_path = "";
   int res;
 
   // Create the data and config directory strings
-  home = getenv("HOME");
-  xdg_data_home = getenv("XDG_DATA_HOME");
-  if (NULL == xdg_data_home) {
-    res = asprintf(&datadir, "%s/%s", home, ".local/share/dd");
+  char *env_home = getenv("HOME");
+  char *env_xdg_data_home = getenv("XDG_DATA_HOME");
+  if (NULL == env_xdg_data_home) {
+    res = asprintf(&datadir, "%s/%s", env_home, ".local/share/dd");
   } else {
-    res = asprintf(&datadir, "%s/%s", xdg_data_home, "dd");
+    res = asprintf(&datadir, "%s/%s", env_xdg_data_home, "dd");
   }
   assert(-1 != res);
 
-  res = asprintf(&config_path, "%s/.config/dd/dd.yaml", home);
+  res = asprintf(&config_path, "%s/.config/dd/dd.ini", env_home);
   assert(-1 != res);
+
+  Option options[] = {
+      {"", "mail_server", "DD_IMAP_SERVER", "imap-server", "imap",
+       "server", "Incoming mail server"},
+      {"", "mail_user", "DD_IMAP_USER", "imap-user", "imap", "user",
+       "Incoming username"},
+      {"", "mail_port", "DD_IMAP_PORT", "imap-port", "imap", "port",
+       "Incoming port"},
+      {"", "mail_pw", "DD_IMAP_PASSWORD", "imap-password", "imap",
+       "password", "Incoming password"},
+
+      {"", "send_server", "DD_SMTP_SERVER", "smtp-server", "smtp",
+       "server", "Outgoing mail server"},
+      {"", "send_user", "DD_SMTP_USER", "smtp-user", "smtp", "user",
+       "Outgoing username"},
+      {"", "send_port", "DD_SMTP_PORT", "smtp-port", "smtp", "port",
+       "Outgoing port"},
+      {"", "send_pw", "DD_SMTP_PASSWORD", "smtp-password", "smtp",
+       "password", "Outgoing password"},
+
+      {"", "addr", "DD_EMAIL", "email", "account", "email", "Email address"},
+      {"", "displayname", "DD_DISPLAY_NAME", "display-name",
+       "account", "displayname", "Display name"},
+      {"", "selfstatus", "DD_FOOTER", "footer", "account", "footer",
+       "Email signature"},
+  };
+
+  int opt_len = sizeof(options)/sizeof(Option);
 
   // Parse config file first
-  FILE *input = fopen(config_path, "rb");
-  free(config_path);
-
-  if (NULL != input) {
-    int done = 0;
-    yaml_parser_t parser;
-    yaml_token_t token;
-    char **setting;
-    if (!yaml_parser_initialize(&parser)) {
-      fatal("Unable to initialize yaml parser");
-    }
-
-    yaml_parser_set_input_file(&parser, input);
-    while (!done) {
-      if (!yaml_parser_scan(&parser, &token)) {
-        break;
-      }
-
-      switch (token.type) {
-      case YAML_STREAM_END_TOKEN:
-        done = 1;
-        break;
-      case YAML_SCALAR_TOKEN:
-        if (0 == strcmp(token.data.scalar.value, "email")) {
-          setting = &email;
-        } else if (0 == strcmp(token.data.scalar.value, "password")) {
-          setting = &password;
-        //} else if (0 == strcmp(token.data.scalar.value, "alarm") {
-          //setting = &alarm;
-        } else if (NULL != setting) {
-          (*setting) = strdup(token.data.scalar.value);
-          setting = NULL;
-        } else {
-          setting = NULL;
-        }
-        break;
-      }
-      if (token.type != YAML_STREAM_END_TOKEN) {
-        yaml_token_delete(&token);
-      }
-    }
-
-    yaml_parser_delete(&parser);
-    fclose(input);
+  ini_t *config = ini_load(config_path);
+  for (int i = 0; i < opt_len; i++) {
+    from_ini(&options[i], config);
+    from_env(&options[i]);
+    from_arg(&options[i]);
   }
 
-  // Get environment variables.
-  const char *env_email = getenv("DD_EMAIL");
-  if (NULL != env_email) {
-    email = env_email;
-  }
-  const char *env_password = getenv("DD_PASSWORD");
-  if (NULL != env_password) {
-    password = env_password;
-  }
-
-  // Command line arguments highest priority.
-  flag_string(&email, "email", "Email address [DD_EMAIL]");
-  flag_string(&password, "password", "Email password [DD_PASSWORD]");
-  flag_string(&datadir, "datadir", "Data directory");
-  flag_int(&history_count, "count", "Lines of history to print for each contact");
+  // flag_string(&datadir, "datadir", "Data directory");
+  flag_int(&history_count, "count",
+           "Lines of history to print for each contact");
   flag_bool(&alarm_disabled, "silent", "Silence the alarm bell");
   flag_bool(&logging, "verbose", "Print debugging information");
   flag_parse(argc, argv, VERSION);
 
-  if (NULL == email || NULL == password) {
+  // Options do not change after this point!
+  char *addr = getValue(options, opt_len, "addr");
+  char *mail_pw = getValue(options, opt_len, "mail_pw");
+
+  // Check required variables
+  if (NULL == addr || NULL == mail_pw) {
+    info("addr or mail_pw is %s", mail_pw);
     exit(EXIT_FAILURE);
   }
 
@@ -136,7 +173,7 @@ int main(int argc, const char **argv) {
   // Create path strings
   char *db, *accountdir, *keydir;
 
-  res = asprintf(&accountdir, "%s/%s", datadir, email);
+  res = asprintf(&accountdir, "%s/%s", datadir, addr);
   assert(-1 != res);
 
   res = asprintf(&db, "%s/db", accountdir);
@@ -164,10 +201,12 @@ int main(int argc, const char **argv) {
   dc_open(context, db, NULL);
   free(db);
 
-  dc_set_config(context, "addr", email);
-  dc_set_config(context, "mail_pw", password);
+  for (int i = 0; i < sizeof(options) / sizeof(Option); i++) {
+    set_option(context, &options[i]);
+  }
   dc_set_config(context, "accountdir", accountdir);
   free(accountdir);
+  free(config);
 
   dc_configure(context);
 

@@ -1,5 +1,5 @@
 CC = gcc
-INCS = -I/usr/local/include/deltachat -I./deps/flag -I./include -L/usr/local/lib
+INCS = -I/usr/local/include/deltachat -I./deps/ini -I./deps/flag -I./include -L/usr/local/lib
 LIBS = libssl libcurl sqlite3 libcrypto
 LDFLAGS += -lyaml -ldeltachat -lpthread `pkg-config --libs ${LIBS}`
 CLIBFLAGS = `pkg-config --cflags ${LIBS}`
