@@ -140,7 +140,7 @@ int main(int argc, const char **argv) {
   int opt_len = sizeof(options)/sizeof(Option);
 
   // Parse config file first
-  ini_t *config = ini_load(config_path);
+  config = ini_load(config_path);
   for (int i = 0; i < opt_len; i++) {
     from_ini(&options[i], config);
     from_env(&options[i]);
@@ -201,12 +201,15 @@ int main(int argc, const char **argv) {
   dc_open(context, db, NULL);
   free(db);
 
-  for (int i = 0; i < sizeof(options) / sizeof(Option); i++) {
+  int option_count = sizeof(options) / sizeof(Option);
+  for (int i = 0; i < option_count; i++) {
     set_option(context, &options[i]);
   }
   dc_set_config(context, "accountdir", accountdir);
   free(accountdir);
-  free(config);
+
+  // I use this in the output thread.
+  // free(config);
 
   dc_configure(context);
 

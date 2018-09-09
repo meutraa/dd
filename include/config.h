@@ -21,7 +21,9 @@
 #define DD_CONFIG_H_
 
 #include <stdbool.h>
+#include "ini.h"
 
+ini_t *config;
 extern int history_count;
 extern bool alarm_disabled;
 

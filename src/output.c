@@ -41,6 +41,7 @@ void print_message(FILE *file, dc_context_t *context, int chat_id, int msg_id) {
   time_t received_at = dc_msg_get_timestamp(msg);
 
   char *name = dc_contact_get_display_name(sender);
+  char *email = dc_contact_get_addr(sender);
   char *text = dc_msg_get_text(msg);
 
   // Same room logic.
@@ -68,8 +69,26 @@ void print_message(FILE *file, dc_context_t *context, int chat_id, int msg_id) {
 
   fprintf(file, "  %s", recent ? HIDDEN : BOLD);
   fprintf(file, "%s%s    ", buff, RESET); // Time
+
+  bool custom_color = false;
+  if (NULL != config) {
+    const char *opt = ini_get(config, "colors", email);
+    if (NULL != opt && 0 != strcmp("", opt)) {
+      custom_color = true;
+      fprintf(file, "\x1b[%sm", opt);
+    }
+  }
+  if (!custom_color) {
+      fprintf(file, "%s", BOLD);
+  }
+
+  // Send an alarm bell if the contact is not us.
+  if (sender_id != 1 && !alarm_disabled) {
+    fprintf(file, "\a");
+  }
+
   if (sender_id != 1) {
-    fprintf(file, alarm_disabled ? "%s%s%s: " : "\a%s%s%s: ", BOLD, name, RESET); // Name
+    fprintf(file, "%s%s ", name, RESET); // Name
   } else {
     fprintf(file, "%s", BOLD BLACK);
   }
