@@ -26,6 +26,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
+#include "config.h"
 #include "logging.h"
 #include "sending.h"
 
@@ -38,24 +39,30 @@ struct thread_args {
 
 typedef void (*sendFunc)(struct _dc_context *, const char *, const char *);
 
-struct ext {
-  char *ext;
-  sendFunc function;
-};
-
-struct ext exts[] = {
-    {"jpg", &send_image},  {"jpeg", &send_image}, {"JPG", &send_image},
-    {"png", &send_image},  {"mp3", &send_audio},  {"ogg", &send_voice},
-    {"opus", &send_voice}, {"wav", &send_voice},  {"mp4", &send_video},
-};
-
 static sendFunc get_ext_function(const char *extension) {
-  for (unsigned long i = 0; i < sizeof(exts) / sizeof(exts[0]); i++) {
-    if (0 == strcmp(exts[i].ext, extension)) {
-      return exts[i].function;
-    }
+  if (NULL != config) {
+    return &send_file;
   }
-  return NULL;
+
+  const char *type = ini_get(config, "file_types", extension);
+  if (NULL == type || strlen(type) == 0) {
+    return &send_file;
+  }
+
+  if (0 == strcmp("image", type)) {
+    return &send_image;
+  }
+  if (0 == strcmp("voice", type)) {
+    return &send_voice;
+  }
+  if (0 == strcmp("audio", type)) {
+    return &send_audio;
+  }
+  if (0 == strcmp("video", type)) {
+    return &send_video;
+  }
+
+  return &send_file;
 }
 
 static void *start_listen_thread(void *arguments) {
@@ -104,11 +111,7 @@ static void *start_listen_thread(void *arguments) {
         if (NULL != ext && NULL != path && strlen(path) > 0 &&
             strlen(ext) > 0) {
           sendFunc func = get_ext_function(ext);
-          if (NULL == func) {
-            send_file(args->context, argv[0], path);
-          } else {
-            func(args->context, argv[0], path);
-          }
+          func(args->context, argv[0], path);
         }
       }
     }
