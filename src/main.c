@@ -213,8 +213,8 @@ int main(int argc, const char **argv) {
 
   dc_configure(context);
 
-  info("Importing private keys from %s", keydir);
-  dc_imex(context, DC_IMEX_IMPORT_SELF_KEYS, keydir, NULL);
+  //info("Importing private keys from %s", keydir);
+  //dc_imex(context, DC_IMEX_IMPORT_SELF_KEYS, keydir, NULL);
 
   start_receiving_thread(context);
   start_sending_thread(context);

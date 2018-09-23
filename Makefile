@@ -1,19 +1,15 @@
-CC = gcc
-INCS = -I/usr/local/include/deltachat -I./deps/ini -I./deps/flag -I./include -L/usr/local/lib
-LIBS = libssl libcurl sqlite3 libcrypto
-LDFLAGS += -lyaml -ldeltachat -lpthread `pkg-config --libs ${LIBS}`
-CLIBFLAGS = `pkg-config --cflags ${LIBS}`
-WARNINGS = -Wall -Wextra -Wno-discarded-qualifiers -Wno-switch -Wno-pointer-sign
-CFLAGS += -std=gnu11 -O3 -pipe -fomit-frame-pointer ${CLIBFLAGS} ${WARNINGS} ${INCS}
+CFLAGS += -std=gnu11 -Wall -Wextra
+LDFLAGS += -I/usr/local/include/deltachat -I./deps/ini -I./deps/flag -I./include -L/usr/local/lib
+LDLIBS = -lssl -lcurl -lsqlite3 -lcrypto -lyaml -ldeltachat -lpthread 
 
 all:
-	${CC} ${CFLAGS} -o dd src/*.c deps/*/*.c ${LDFLAGS}
+	$(CC) $(LDFLAGS) src/*.c deps/ini/*.c deps/flag/*.c $(LDLIBS) -o dd
 
 install: all
-	@cp {.,/usr/bin}/dd
+	@cp dd /usr/bin/ddd
 
 uninstall:
-	@rm /usr/bin/dd
+	@rm /usr/bin/ddd
 
 clean:
 	@rm ./dd
